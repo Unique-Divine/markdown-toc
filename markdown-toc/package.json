@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "homepage": "https://github.com/Unique-Divine/markdown-toc",
   "author": "Unique Divine (https://github.com/Unique-Divine)",
+  "type": "module",
   "contributors": [
     "Jon Schlinkert (http://twitter.com/jonschlinkert)",
     "=^._.^= (http://maxogden.com)",
@@ -78,7 +79,7 @@
     "eslint-plugin-prettier": "^5.0.0",
     "gulp-format-md": "^2.0.0",
     "jest": "^29.7.0",
-    "prettier": "^3.0.3",
+    "prettier": "^3.2.5",
     "typescript": "^5.2.2"
   },
   "keywords": [
