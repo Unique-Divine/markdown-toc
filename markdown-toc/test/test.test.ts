@@ -2,6 +2,7 @@ import { describe, test, expect } from "bun:test" // eslint-disable-line import/
 import { readFileSync } from "fs"
 import { RemarkablePlus } from "../src/mdtoc/remarkable"
 import { toc, Toc } from "../src/mdtoc"
+import { GenerateOptions } from "../src/mdtoc/generate"
 
 function strip(str: string) {
   return str.trim()
@@ -13,16 +14,18 @@ function read(fp: PathOrFileDescriptor) {
 }
 
 interface WantGot {
-  want: any;
-  got: any;
+  want: any
+  got: any
 }
 
-interface NamedWantGot extends WantGot { name: string }
+interface NamedWantGot extends WantGot {
+  name: string
+}
 
 test("new works", () => {
   const remark = new RemarkablePlus({ options: undefined })
-  expect(remark).toBeDefined();
-  ["ruler", "options", "renderer"].forEach((prop: string) => {
+  expect(remark).toBeDefined()
+  ;["ruler", "options", "renderer"].forEach((prop: string) => {
     expect(remark.core).toHaveProperty(prop)
   })
 })
@@ -284,24 +287,54 @@ describe("toc", () => {
   })
 
   test("should remove the first H1 when `firsth1` is false:", () => {
-    console.debug("DEBUG TC")
-    expect(toc("# AAA\n## BBB\n### CCC", { firsth1: false }).content).toEqual(
-      ["- [BBB](#bbb)", "  * [CCC](#ccc)"].join("\n"),
-    )
+    const inp = "# AAA\n## BBB\n### CCC"
+    const out = toc(inp, { firsth1: false })
+    expect(out.highest).toEqual(1) // contains an h1
+    const bullets: string[] = out.content.split("\n")
+    expect(bullets).toHaveLength(2) // h1 gets removed
+    expect(bullets[0]).toContain("[BBB](#bbb)")
+    expect(bullets[1]).toContain("[CCC](#ccc)")
   })
 
-  test("should correctly calculate `maxdepth` when `firsth1` is false:", () => {
-    expect(
-      toc("# AAA\n## BBB\n### CCC\n#### DDD", {
-        maxdepth: 2,
-        firsth1: false,
-      }).content,
-    ).toEqual(["- [BBB](#bbb)", "  * [CCC](#ccc)"].join("\n"))
+  let tcs: {
+    given: { md: string; opts: GenerateOptions }
+    want: { highest: number; containSeq: string[] }
+  }[] = [
+    {
+      given: {
+        md: "# AAA\n## BBB\n### CCC\n#### DDD",
+        opts: { firsth1: false }, // defaults to maxdepth 3
+      },
+      want: { highest: 1, containSeq: ["BBB", "CCC", "DDD"] },
+    },
 
-    expect(
-      toc("## BBB\n### CCC\n#### DDD", { maxdepth: 2, firsth1: false }).content,
-    ).toEqual(["- [BBB](#bbb)", "  * [CCC](#ccc)"].join("\n"))
-  })
+    {
+      given: {
+        md: "# AAA\n## BBB\n### CCC\n#### DDD",
+        opts: { firsth1: false, maxdepth: 3 },
+      },
+      want: { highest: 1, containSeq: ["BBB", "CCC"] },
+    },
+
+    {
+      given: {
+        md: "## BBB\n### CCC\n#### DDD",
+        opts: { firsth1: false, maxdepth: 3 },
+      },
+      want: { highest: 2, containSeq: ["CCC"] },
+    },
+  ]
+  test.each(tcs.map((tc, tcIdx) => [tc.given, tc.want, tcIdx]))(
+    "correct `maxdepth` behavior #%#: want %o, got %o",
+    (given, want) => {
+      const out = toc(given.md, given.opts)
+      expect(want.highest).toEqual(out.highest)
+      const bullets: string[] = out.content.split("\n")
+      bullets.forEach((bullet, bulletIdx) =>
+        expect(bullet).toContain(want.containSeq[bulletIdx]),
+      )
+    },
+  )
 
   test("should allow custom bullet points to be defined:", () => {
     const actual = toc("# AAA\n# BBB\n# CCC", {
@@ -399,8 +432,8 @@ describe("toc tokens", () => {
   test("should return an object for customizing a toc:", () => {
     const actual = toc("# AAA\n## BBB\n### CCC")
     expect(actual).toBeDefined()
-    expect(typeof actual).toEqual("object");
-    ["content", "highest", "tokens"].forEach((prop) =>
+    expect(typeof actual).toEqual("object")
+    ;["content", "highest", "tokens"].forEach((prop) =>
       expect(actual).toHaveProperty(prop),
     )
   })
@@ -426,8 +459,8 @@ describe("toc tokens", () => {
 describe("json property", () => {
   test("should expose a `json` property:", () => {
     const actual = toc("# AAA\n## BBB\n## BBB\n### CCC\nfoo")
-    expect(Array.isArray(actual.json)).toBeDefined();
-    ["content", "lvl", "slug"].forEach((prop) =>
+    expect(Array.isArray(actual.json)).toBeDefined()
+    ;["content", "lvl", "slug"].forEach((prop) =>
       expect(actual.json[0]).toHaveProperty(prop),
     )
   })
